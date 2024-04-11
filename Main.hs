@@ -1,8 +1,11 @@
+import Text.Printf
+
 -- recebe um comando e devolve a posição final
 basico :: Command -> (Int, Int, Direcao, [Command]) 
 basico (Forward n) = (0, n, Norte, [])               -- se comando foi Forward, incrementa y
 basico (Backward n) = (0, -n, Norte, [])             -- se comando foi Backward, decrementa y
-basico _ = (0, 0, Norte, [])                       -- se TurnLeft ou TurnRight, posição não muda
+basico TurnLeft = (0, 0, Oeste, [])       
+basico TurnRight = (0, 0, Leste, [])
 
 -- posicionar recebe posição atual, direção e lista de comandos 
 -- e devolve posição final, direção e lista de comandos
@@ -45,5 +48,26 @@ destination [] = (0, 0, Norte, [])    -- caso base: sem comandos, permanecer na 
 destination (x:[]) = basico x         -- caso básico: apenas um comando foi recebido
 destination (x:xs) = posicionar (0, 0, Norte, (x:xs)) -- caso composto: chama função posicionar
 
+arvore :: String
+arvore = "\127795"
+rua :: String
+rua = "--" --"\11036"
+escola :: String
+escola = "\127979"
+aluno :: String
+aluno = "\128578"
+
+borda :: IO ()
+borda = do
+  printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore arvore rua escola "|"
+  printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore arvore rua arvore "|"
+  printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore rua rua arvore "|"
+  printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore aluno rua arvore "|"
+
+  
 main = do
-  print(destination [])
+  putStrLn "-- Seja bem-vinda(o) ao jogo Chegando ao CI! --"
+  putStrLn "\n Fase 1:"
+  borda
+  --print(destination [TurnLeft, Backward 3, TurnRight, TurnRight, Forward 4])
+  --putStrLn "\128187"
