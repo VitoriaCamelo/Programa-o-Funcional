@@ -49,25 +49,48 @@ destination (x:[]) = basico x         -- caso básico: apenas um comando foi rec
 destination (x:xs) = posicionar (0, 0, Norte, (x:xs)) -- caso composto: chama função posicionar
 
 arvore :: String
-arvore = "\127795"
+arvore = "#"
 rua :: String
-rua = "--" --"\11036"
+rua = " " 
 escola :: String
-escola = "\127979"
+escola = "@"
 aluno :: String
-aluno = "\128578"
+aluno = "%"
 
-borda :: IO ()
-borda = do
+jogo1 :: IO ()
+jogo1 = do
+  printf " ______________\n"
   printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore arvore rua escola "|"
   printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore arvore rua arvore "|"
   printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore rua rua arvore "|"
   printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore aluno rua arvore "|"
+  printf " ______________\n"
 
+trataComando :: Int -> Int -> (Int, Int, Direcao, [Command]) 
+trataComando 1 passos = 
+
+menu :: IO ()
+menu = do
+  putStrLn "\nOpções:"
+  putStrLn "\n[1] Para Frente \t\t[2] Para Trás"
+  putStrLn "\n[3] Virar à Esquerda \t[4] Virar à Direita"
+  putStrLn "\nEscolha um comando:"
+  comandoStr <- getLine                
+  let comando = read comandoStr :: Int
+  if comando == 1 or comando == 2 then do
+    putStrLn "\nQuantos passos?"
+    passosStr <- getLine
+    let passos = read passosStr :: Int
+    trataComando comando passos
+  trataComando comando 0
+  
   
 main = do
   putStrLn "-- Seja bem-vinda(o) ao jogo Chegando ao CI! --"
-  putStrLn "\n Fase 1:"
-  borda
+  putStrLn "\nFase 1:"
+  jogo1
+  menu
+  
+  
   --print(destination [TurnLeft, Backward 3, TurnRight, TurnRight, Forward 4])
   --putStrLn "\128187"
