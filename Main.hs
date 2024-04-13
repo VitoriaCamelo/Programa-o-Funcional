@@ -54,22 +54,40 @@ rua :: String
 rua = " " 
 escola :: String
 escola = "@"
-aluno :: String
-aluno = "%"
+alunoNorte :: String
+alunoNorte = "^"
+alunoSul :: String
+alunoSul = "v"
+alunoLeste :: String
+alunoLeste = ">"
+alunoOeste :: String
+alunoOeste = "<"
 
-jogo1 :: IO ()
-jogo1 = do
-  printf " ______________\n"
-  printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore arvore rua escola "|"
-  printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore arvore rua arvore "|"
-  printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore rua rua arvore "|"
-  printf "%-3s%-3s%-3s%-3s%-3s%-3s\n" "|" arvore aluno rua arvore "|"
-  printf " ______________\n"
+montagem1 :: [[String]]
+montagem1 = [[arvore, arvore, rua, escola], [arvore, arvore, rua, arvore], [arvore, arvore, rua, arvore], [arvore, alunoNorte, rua, arvore]]
 
-trataComando :: Int -> Int -> (Int, Int, Direcao, [Command]) 
-trataComando 1 passos = 
+printLinha :: [String] -> IO ()
+printLinha linha = printf "|%-3s%-3s%-3s%-3s|\n" (linha!!0) (linha!!1) (linha!!2) (linha!!3)
 
-menu :: IO ()
+
+cenario :: [[String]] -> IO ()
+cenario (x:y:z:t:_) = do
+  printf " ____________\n"
+  printLinha x
+  printLinha y
+  printLinha z
+  printLinha t
+  printf " ____________\n"
+
+trataSimples :: Command -> [[String]] -> [[String]]
+trataSimples TurnLeft montagem = map (map (\x -> if x == alunoNorte then alunoLeste else if x == alunoSul then alunoLeste else if x == alunoLeste then alunoNorte else alunoSul)) montagem
+
+trataComando :: Command -> [[String]] -> [[String]]
+trataComando TurnLeft montagem = trataSimples TurnLeft montagem1
+trataComando TurnRight montagem = trataSimples TurnRight montagem
+
+
+menu :: IO Command
 menu = do
   putStrLn "\nOpções:"
   putStrLn "\n[1] Para Frente \t\t[2] Para Trás"
@@ -77,19 +95,31 @@ menu = do
   putStrLn "\nEscolha um comando:"
   comandoStr <- getLine                
   let comando = read comandoStr :: Int
-  if comando == 1 or comando == 2 then do
+  if comando == 1 || comando == 2 then do
     putStrLn "\nQuantos passos?"
     passosStr <- getLine
     let passos = read passosStr :: Int
-    trataComando comando passos
-  trataComando comando 0
-  
+    if comando == 1 then 
+      return (Forward passos)
+    else 
+      return (Backward passos)
+  else 
+    if comando == 3 then 
+      return TurnLeft
+    else 
+      return TurnRight
+
+jogo :: [[String]] -> IO()
+jogo montagem = do
+  cenario montagem
+  comando <- menu
+  trataComando comando montagem
+  cenario 
   
 main = do
   putStrLn "-- Seja bem-vinda(o) ao jogo Chegando ao CI! --"
   putStrLn "\nFase 1:"
-  jogo1
-  menu
+  jogo montagem1
   
   
   --print(destination [TurnLeft, Backward 3, TurnRight, TurnRight, Forward 4])
