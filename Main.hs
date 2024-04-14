@@ -1,10 +1,6 @@
 import Text.Printf
 
-data Direcao = Norte | Sul | Leste | Oeste -- para onde o robô pode estar olhando
-  deriving (Show)
-data Command = Forward Int | Backward Int | TurnLeft | TurnRight  | Stop -- comandos possíveis
-  deriving (Eq, Show)
-
+-- Definições Gerais --
 arvore :: String
 arvore = "#"
 rua :: String
@@ -20,12 +16,19 @@ alunoLeste = ">"
 alunoOeste :: String
 alunoOeste = "<"
 
+-- Configurações dos Jogos --
 montagem1 :: [[String]]
 montagem1 = [[arvore, arvore, rua, escola], [arvore, arvore, rua, arvore], [arvore, arvore, rua, arvore], [arvore, alunoNorte, rua, arvore]]
+aluno1 :: (Int, Int)
+aluno1 = (1,0)
+obstaculos1 :: [(Int, Int)]
+obstaculos1 = [(0,0), (0,1), (0,2), (0,3), (1,1), (1,2), (1,3), (3,1), (3,2)]
+alvo1 :: (Int, Int)
+alvo1 = (3,3)
 
+-- Lógica de Montagem --
 printLinha :: [String] -> IO ()
 printLinha linha = printf "|%-3s%-3s%-3s%-3s|\n" (linha!!0) (linha!!1) (linha!!2) (linha!!3)
-
 
 cenario :: [[String]] -> IO ()
 cenario (x:y:z:t:_) = do
@@ -36,6 +39,12 @@ cenario (x:y:z:t:_) = do
   printLinha t
   printf " ____________\n"
 
+-- Lógica de Movimentação --
+data Direcao = Norte | Sul | Leste | Oeste -- para onde o robô pode estar olhando
+  deriving (Show)
+data Command = Forward Int | Backward Int | TurnLeft | TurnRight  | Stop -- comandos possíveis
+  deriving (Eq, Show)
+  
 trataSimples :: Command -> [[String]] -> [[String]]
 trataSimples TurnLeft montagem = 
    map (map (\x -> 
@@ -52,11 +61,13 @@ trataSimples TurnRight montagem =
      else if x == alunoOeste then alunoNorte 
      else x )) montagem
 
-trataComando :: Command -> [[String]] -> [[String]]
-trataComando TurnLeft montagem = trataSimples TurnLeft montagem
-trataComando TurnRight montagem = trataSimples TurnRight montagem
+trataComposto :: Command -> [[String]] -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> ([[String]], (Int, Int), Bool)
+trataComposto (Forward n) montagem (x,y) obstaculos alvo =  verificarColisao (Forward n) montagem (x,y) obstaculos alvo 
+
+verificarColisao :: Command -> [[String]] -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> (Int, [[String]], (Int, Int))
 
 
+-- Fluxo do Jogo --
 menu :: IO Command
 menu = do
   putStrLn "\nOpções:"
@@ -82,15 +93,21 @@ menu = do
     return Stop
 
 jogo :: [[String]] -> IO()
-jogo montagem = do
+jogo montagem aluno obstaculos alvo = do
   cenario montagem
   comando <- menu
   if comando == Stop then do
     putStrLn "\nAté a próxima!"
+  else if comando == Forward n || comando == Backward n then do
+    let (montagem, aluno, resposta) = trataComposto comando montagem aluno obstaculos alvo
+    if resposta then do
+       return ()
+    else do jogo montagem aluno obstaculos alvo
   else do
-    jogo (trataComando comando montagem)
-  
+    jogo (trataSimples comando montagem) aluno obstaculos alvo 
+
+-- Fluxo Principal --
 main = do
   putStrLn "-- Seja bem-vinda(o) ao jogo Chegando ao CI! --"
   putStrLn "\nFase 1:"
-  jogo montagem1
+  jogo montagem1 aluno1 obstaculos1 alvo1
