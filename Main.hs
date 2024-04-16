@@ -44,7 +44,15 @@ data Direcao = Norte | Sul | Leste | Oeste -- para onde o robô pode estar olhan
   deriving (Show)
 data Command = Forward Int | Backward Int | TurnLeft | TurnRight  | Stop -- comandos possíveis
   deriving (Eq, Show)
-  
+
+verificaDirecao :: [[String]] -> Direcao -- corrigir
+verificaDirecao (x:xs) 
+  | x == alunoNorte = Norte
+  | x == alunoSul = Sul
+  | x == alunoLeste = Leste
+  | x == alunoOeste = Oeste
+  | otherwise = verificaDirecao xs
+
 trataSimples :: Command -> [[String]] -> [[String]]
 trataSimples TurnLeft montagem = 
    map (map (\x -> 
@@ -61,12 +69,46 @@ trataSimples TurnRight montagem =
      else if x == alunoOeste then alunoNorte 
      else x )) montagem
 
-trataComposto :: Command -> [[String]] -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> ([[String]], (Int, Int), Bool)
-trataComposto (Forward n) montagem (x,y) obstaculos alvo =  verificarColisao (Forward n) montagem (x,y) obstaculos alvo 
+calcularPosicao :: Command -> Direcao -> (Int, Int) -> (Int, Int)
+calcularPosicao (Forward _) direcao (x, y)  
+ | direcao == Norte = (x, y+1)
+ | direcao == Sul = (x, y-1)
+ | direcao == Oeste = (x-1, y)
+ | direcao == Leste = (x+1, y)
+calcularPosicao (Backward _) direcao (x, y)  
+ | direcao == Norte = (x, y-1)
+ | direcao == Sul = (x, y+1)
+ | direcao == Oeste = (x+1, y)
+ | direcao == Leste = (x-1, y)
 
-verificarColisao :: Command -> [[String]] -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> (Int, [[String]], (Int, Int))
+verificarColisao :: (Int, Int) -> [(Int, Int)] -> (Int, Int) -> Int
+verificarColisao (x,y) (primeiro:xs) alvo 
+  | xs == [] && primeiro /= (x,y) = 0
+  | xs == [] && primeiro == (x,y) = 1
+  | (x,y) == primeiro = 1
+  | (x,y) == alvo = 2
+  | otherwise = verificarColisao (x,y) xs alvo
+  
+trataComposto :: Command -> [[String]] -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> (Int, (Int, Int))
+trataComposto (Forward n) montagem (x,y) obstaculos alvo =  repetir aluno 1
+  where 
+    repetir aluno k =
+      if k<n then 
+        let novaPosicao = calcularPosicao (x, y) 
+            retorno = verificarColisao novaPosicao obstaculos alvo 
+        in
+          if retorno == 1 then (1, novaPosicao)
+          else if retorno == 2 then (2, novaPosicao)
+          else repetir aluno (k+1)
+      else
+        let novaPosicao = calcularPosicao (x, y) 
+            retorno = verificarColisao novaPosicao obstaculos alvo 
+        in
+          if retorno == 1 then (1, novaPosicao)
+          else if retorno == 2 then (2, novaPosicao) 
+          else (0, novaPosicao)
 
-
+          
 -- Fluxo do Jogo --
 menu :: IO Command
 menu = do
@@ -92,22 +134,27 @@ menu = do
   else
     return Stop
 
-jogo :: [[String]] -> IO()
-jogo montagem aluno obstaculos alvo = do
+jogo :: [[String]] -> Direcao -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> IO()
+jogo montagem direcao aluno obstaculos alvo = do
   cenario montagem
   comando <- menu
   if comando == Stop then do
     putStrLn "\nAté a próxima!"
   else if comando == Forward n || comando == Backward n then do
-    let (montagem, aluno, resposta) = trataComposto comando montagem aluno obstaculos alvo
+    let (resposta, aluno) = trataComposto comando montagem aluno obstaculos alvo
     if resposta then do
-       return ()
-    else do jogo montagem aluno obstaculos alvo
+       print "Movimento inválido"
+    else if resposta == 2 then do return()
+    else do jogo montagem direcao aluno obstaculos alvo
   else do
-    jogo (trataSimples comando montagem) aluno obstaculos alvo 
+    let montagem = trataSimples comando montagem
+    let direcao = verificaDirecao montagem
+    jogo montagem direcao aluno obstaculos alvo 
 
 -- Fluxo Principal --
 main = do
   putStrLn "-- Seja bem-vinda(o) ao jogo Chegando ao CI! --"
   putStrLn "\nFase 1:"
-  jogo montagem1 aluno1 obstaculos1 alvo1
+  jogo montagem1 Norte aluno1 obstaculos1 alvo1
+  putStrLn "\nFase 2:"
+  -- completar
