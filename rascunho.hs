@@ -1,3 +1,15 @@
+remontar :: Int -> Int -> Direcao -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> IO (Int, (Int, Int)) 
+remontar resposta dimensao direcao (x, y) obstaculos alvo
+  | resposta == 1 =
+    printf "Movimento inválido"
+    return (1, novaPosicao)
+  | resposta == 2 = 
+    printf "Parabéns, você chegou ao CI"
+    return (2, novaPosicao)
+  | resposta == 0 = 
+    cenario (criarMatriz dimensao direcao (x,y) obstaculos alvo)
+    return (0, novaPosicao)
+
 arvore :: String
 arvore = "\127795"
 rua :: String
