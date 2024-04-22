@@ -23,9 +23,18 @@ montagem1 = [[arvore, arvore, rua, escola], [arvore, arvore, rua, arvore], [arvo
 aluno1 :: (Int, Int)
 aluno1 = (1,0)
 obstaculos1 :: [(Int, Int)]
-obstaculos1 = [(0,0), (2,0), (3,0), (0,1), (1,1), (3,1), (0,2), (1,2), (3,2), (0,3), (1,3)]
+obstaculos1 = [(0,0), (0,1), (0,2), (0,3), (1,1), (1,2), (1,3), (3,0), (3,1), (3,2), (1,3)]
 alvo1 :: (Int, Int)
 alvo1 = (3,3)
+
+montagem2 :: [[String]]
+montagem2 = [[arvore, escola, rua, arvore], [arvore, arvore, rua, arvore], [arvore, rua, rua, arvore], [alunoNorte, rua, arvore, arvore]]
+aluno2 :: (Int, Int)
+aluno2 = (0,0)
+obstaculos2 :: [(Int, Int)]
+obstaculos2 = [(0,1), (0,2), (0,3), (1,2), (1,3), (2,0), (3,0), (3,1), (3,2), (3,3)]
+alvo2 :: (Int, Int)
+alvo2 = (1,3)
 
 -- Lógica de Montagem --
 printLinha :: [String] -> IO ()
@@ -68,11 +77,15 @@ criarMatriz dimensao direcao (x,y) obstaculos alvo  = [criarLinha dimensao linha
        | c == dimensao-1 = [atribuiElemento (l,c) direcao (x,y) obstaculos alvo]
        | otherwise = atribuiElemento (l,c) direcao (x,y) obstaculos alvo : criarLinha d l (c+1)
 
-remontar :: (Int, (Int, Int)) -> Int -> Direcao -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> IO (Int, (Int, Int)) 
-remontar (resposta, novaPosicao) dimensao direcao (x, y) obstaculos alvo 
-  | resposta == 1 = printf "Movimento inválido\n" >> return (1, novaPosicao)
-  | resposta == 2 = printf "Parabéns, você chegou ao CI\n" >> return (2, novaPosicao)
-  | otherwise = printf "Sem colisão\n" >> cenario (criarMatriz dimensao direcao (x,y) obstaculos alvo) >> return (0, novaPosicao)
+remontar :: (Int, (Int, Int), [[String]]) -> Int -> Direcao -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> IO (Int, (Int, Int), [[String]]) 
+remontar (resposta, novaPosicao, montagemAntiga) dimensao direcao (x, y) obstaculos alvo 
+  | resposta == 1 = printf "Movimento inválido\n" >> return (1, novaPosicao, montagemAntiga)
+  | resposta == 2 = printf "Parabéns, você chegou ao CI\n" >> return (2, novaPosicao, [[]])
+  | otherwise = do
+      let novoCenario = criarMatriz dimensao direcao (x,y) obstaculos alvo
+      printf "Sem colisão\n"
+      cenario novoCenario
+      return (0, novaPosicao, novoCenario)
 
 calcularPosicao :: Command -> Direcao -> (Int, Int) -> (Int, Int)
 calcularPosicao (Forward _) direcao (x, y)  
@@ -97,7 +110,8 @@ verificarColisao (x,y) (primeiro:xs) alvo
   | (x,y) == alvo = 2
   | otherwise = verificarColisao (x,y) xs alvo
 
-trataComposto :: Int -> Command -> [[String]] -> Direcao -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> IO (Int, (Int, Int))
+-- tratar passo 1
+trataComposto :: Int -> Command -> [[String]] -> Direcao -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> IO (Int, (Int, Int), [[String]])
 trataComposto dimensao (Forward n) montagem direcao (x,y) obstaculos alvo =  repetir (x,y) 1
   where 
     repetir (x,y) k =
@@ -106,20 +120,21 @@ trataComposto dimensao (Forward n) montagem direcao (x,y) obstaculos alvo =  rep
             retorno = verificarColisao novaPosicao obstaculos alvo 
         in
           if retorno == 1 then 
-            remontar (1, (x,y)) dimensao direcao novaPosicao obstaculos alvo
+            remontar (1, (x,y), montagem) dimensao direcao novaPosicao obstaculos alvo
           else if retorno == 2 then 
-            remontar (2, novaPosicao) dimensao direcao novaPosicao obstaculos alvo
+            remontar (2, novaPosicao, montagem) dimensao direcao novaPosicao obstaculos alvo
           else 
-            remontar (0, novaPosicao) dimensao direcao novaPosicao obstaculos alvo >> repetir novaPosicao (k+1)
+            remontar (0, novaPosicao, montagem) dimensao direcao novaPosicao obstaculos alvo >> repetir novaPosicao (k+1)
       else
         let novaPosicao = calcularPosicao (Forward n) direcao (x, y) 
             retorno = verificarColisao novaPosicao obstaculos alvo 
         in
           if retorno == 1 then 
-            remontar (1, (x,y)) dimensao direcao novaPosicao obstaculos alvo
+            remontar (1, (x,y), montagem) dimensao direcao novaPosicao obstaculos alvo
           else if retorno == 2 then 
-            remontar (2, novaPosicao) dimensao direcao novaPosicao obstaculos alvo
-          else remontar (0, novaPosicao) dimensao direcao novaPosicao obstaculos alvo
+            remontar (2, novaPosicao, montagem) dimensao direcao novaPosicao obstaculos alvo
+          else remontar (0, novaPosicao, montagem) dimensao direcao novaPosicao obstaculos alvo
+
 trataComposto dimensao (Backward n) montagem direcao (x,y) obstaculos alvo =  repetir (x,y) 1
   where 
     repetir (x,y) k =
@@ -128,36 +143,31 @@ trataComposto dimensao (Backward n) montagem direcao (x,y) obstaculos alvo =  re
             retorno = verificarColisao novaPosicao obstaculos alvo 
         in
           if retorno == 1 then 
-            remontar (1, (x,y)) dimensao direcao novaPosicao obstaculos alvo
+            remontar (1, (x,y), montagem) dimensao direcao novaPosicao obstaculos alvo
           else if retorno == 2 then 
-            remontar (2, novaPosicao) dimensao direcao novaPosicao obstaculos alvo
+            remontar (2, novaPosicao, montagem) dimensao direcao novaPosicao obstaculos alvo
           else 
-            remontar (0, novaPosicao) dimensao direcao novaPosicao obstaculos alvo >> repetir novaPosicao (k+1)
+            remontar (0, novaPosicao, montagem) dimensao direcao novaPosicao obstaculos alvo >> repetir novaPosicao (k+1)
       else
         let novaPosicao = calcularPosicao (Backward n) direcao (x, y) 
             retorno = verificarColisao novaPosicao obstaculos alvo 
         in
           if retorno == 1 then 
-            remontar (1, (x,y)) dimensao direcao novaPosicao obstaculos alvo
+            remontar (1, (x,y), montagem) dimensao direcao novaPosicao obstaculos alvo
           else if retorno == 2 then 
-            remontar (2, novaPosicao) dimensao direcao novaPosicao obstaculos alvo
-          else remontar (0, novaPosicao) dimensao direcao novaPosicao obstaculos alvo
+            remontar (2, novaPosicao, montagem) dimensao direcao novaPosicao obstaculos alvo
+          else remontar (0, novaPosicao, montagem) dimensao direcao novaPosicao obstaculos alvo
 
 
-verificaDirecao :: [[String]] -> Direcao
-verificaDirecao ((x:xs):[]) 
-  | x == alunoNorte = Norte
-  | x == alunoSul = Sul
-  | x == alunoLeste = Leste
-  | x == alunoOeste = Oeste
-  | otherwise = verificaDirecao (xs:[])
-verificaDirecao ([]:xs) = verificaDirecao xs
-verificaDirecao ((x:xs):xss)
-  | x == alunoNorte = Norte
-  | x == alunoSul = Sul
-  | x == alunoLeste = Leste
-  | x == alunoOeste = Oeste
-  | otherwise = verificaDirecao (xs:xss)
+verificaDirecao :: Direcao -> Command -> Direcao
+verificaDirecao Norte TurnLeft = Oeste
+verificaDirecao Norte TurnRight = Leste
+verificaDirecao Sul TurnLeft = Leste
+verificaDirecao Sul TurnRight = Oeste
+verificaDirecao Leste TurnLeft = Norte
+verificaDirecao Leste TurnRight = Sul
+verificaDirecao Oeste TurnLeft = Sul
+verificaDirecao Oeste TurnRight = Norte
   
 trataSimples :: Command -> [[String]] -> [[String]]
 trataSimples TurnLeft montagem = 
@@ -213,16 +223,16 @@ jogo dimensao montagem direcao aluno obstaculos alvo = do
     putStrLn "\nAté a próxima!"
     exitSuccess
   else if verificaFrenteTras comando then do
-    (resposta, aluno) <- trataComposto dimensao comando montagem direcao aluno obstaculos alvo
+    (resposta, aluno, cenarioNovo) <- trataComposto dimensao comando montagem direcao aluno obstaculos alvo
     if resposta == 1 then do
-       jogo dimensao montagem direcao aluno obstaculos alvo
+       jogo dimensao cenarioNovo direcao aluno obstaculos alvo
     else if resposta == 2 then do return()
-    else do jogo dimensao montagem direcao aluno obstaculos alvo
+    else do jogo dimensao cenarioNovo direcao aluno obstaculos alvo
   else do
-    let montagem = trataSimples comando montagem
+    let montagemAtualizada = trataSimples comando montagem
+        direcaoAtualizada = verificaDirecao direcao comando
     print "oi"
-    let direcao = verificaDirecao montagem
-    jogo dimensao montagem direcao aluno obstaculos alvo 
+    jogo dimensao montagemAtualizada direcaoAtualizada aluno obstaculos alvo 
 
 -- Fluxo Principal --
 main = do
@@ -230,4 +240,5 @@ main = do
   putStrLn "\nFase 1:"
   jogo 4 montagem1 Norte aluno1 obstaculos1 alvo1
   putStrLn "\nFase 2:"
+  jogo 4 montagem2 Norte aluno2 obstaculos2 alvo2
   -- completar
