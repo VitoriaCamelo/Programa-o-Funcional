@@ -1,4 +1,5 @@
 import Text.Printf
+import Data.Char (ord)
 import System.Exit (exitSuccess)
 
 -- Definições Gerais --
@@ -263,4 +264,51 @@ main = do
   jogo 0 4 montagem2 Norte aluno2 obstaculos2 alvo2
   putStrLn "\nFase 3: Quase lá"
   jogo 1 4 montagem3 Norte aluno3 obstaculos3 alvo3
+  putStrLn "\n Você finalmente chegou ao CI" 
+
+-- Doodle --
+trataComando :: String -> Int -> Int -> [[String]] -> Direcao -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> IO()
+trataComando [] fase dimensao montagem direcao aluno obstaculos alvo = doodle fase dimensao montagem direcao aluno obstaculos alvo
+trataComando (comando:comandos) fase dimensao montagem direcao aluno obstaculos alvo = do 
+  let comandoInt = ord comando - ord '0'
+  let comandoTratado = if comandoInt == 1 then Forward 1 else if comandoInt == 2 then Backward 1 else if comandoInt == 3 then TurnLeft else if comandoInt == 4 then TurnRight else Stop
+  if comandoTratado == Stop then do
+    putStrLn "\nAté a próxima!"
+    exitSuccess
+  else if verificaFrenteTras comandoTratado then do
+    (resposta, alunoNovo, cenarioNovo) <- trataComposto fase dimensao comandoTratado montagem direcao aluno obstaculos alvo
+    if resposta == 2 then do return()
+    else do cenario cenarioNovo >> trataComando comandos fase dimensao cenarioNovo direcao alunoNovo obstaculos alvo
+  else 
+    let montagemAtualizada = trataSimples comandoTratado montagem
+        direcaoAtualizada = verificaDirecao direcao comandoTratado
+    in 
+      cenario montagemAtualizada
+      >> trataComando comandos fase dimensao montagemAtualizada direcaoAtualizada aluno obstaculos alvo 
+
+doodle :: Int -> Int -> [[String]] -> Direcao -> (Int, Int) -> [(Int, Int)] -> (Int, Int) -> IO()
+doodle fase dimensao montagem direcao aluno obstaculos alvo = do
+  --cenario montagem
+  putStrLn "\nOpções:"
+  putStrLn "\n[1] Para Frente \t\t[2] Para Trás"
+  putStrLn "\n[3] Virar à Esquerda \t[4] Virar à Direita"
+  putStrLn "\n[5] Parar"
+  putStrLn "\nQual a sequência de execução que você deseja?"
+  comando <- getLine                
+  trataComando comando fase dimensao montagem direcao aluno obstaculos alvo
+
+main2 = do
+  putStrLn "-- Seja bem-vinda(o) ao jogo Chegando ao CI! --"
+  putStrLn "\nVocê precisa chegar ao portal (elemento '?') de cada etapa até alcançar o CI (elemento '@') na última fase."
+  putStrLn "\nVocê pode assumir 4 direções: Norte (^), Sul (v), Leste (>) e Oeste (<)."
+  putStrLn "\nEvite as árvores: #"
+  putStrLn "\nFase 1: Apenas começando"
+  cenario montagem1
+  doodle 0 4 montagem1 Norte aluno1 obstaculos1 alvo1
+  putStrLn "\nFase 2: Algumas voltas"
+  cenario montagem2
+  doodle 0 4 montagem2 Norte aluno2 obstaculos2 alvo2
+  putStrLn "\nFase 3: Quase lá"
+  cenario montagem3
+  doodle 1 4 montagem3 Norte aluno3 obstaculos3 alvo3
   putStrLn "\n Você finalmente chegou ao CI" 
